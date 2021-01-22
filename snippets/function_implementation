@@ -4,4 +4,4 @@
 # --
 implement
 ${1:identifier}(${2:arguments}) =
-${3:body}"
+${3:body}
