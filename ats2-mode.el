@@ -438,7 +438,7 @@
   :modes ats2-mode)
 
 ;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.[ds]ats\\'" . ats2-mode))
+(add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
 
 (defun flycheck-ats2-setup ()
   "Set up Flycheck ATS2.
