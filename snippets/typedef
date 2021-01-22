@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: typedef
+# key: typedef
+# --
+typedef ${1:identifier} = ${2:type}

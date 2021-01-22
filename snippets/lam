@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: lam
+# key: lam
+# --
+lam(${1:arguments}) => ${2:body}

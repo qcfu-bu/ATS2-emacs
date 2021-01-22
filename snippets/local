@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: local
+# key: local
+# --
+local
+${1:declarations}
+in
+${2:body}
+end

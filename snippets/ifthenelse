@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: ifthenelse
+# key: if
+# --
+if ${1:conditional} then ${2:expression}
+else ${3:expression}

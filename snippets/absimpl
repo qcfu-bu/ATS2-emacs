@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: absimpl
+# key: absimpl
+# --
+absimpl ${1:identifier} = ${2:body}

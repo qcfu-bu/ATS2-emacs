@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: overload
+# key: overload
+# --
+overload ${1:symbol} with ${2:expression}

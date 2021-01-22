@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: staload unsafe
+# key: staload
+# --
+#staload UN = "prelude/SATS/unsafe.sats"

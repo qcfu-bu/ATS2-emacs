@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: function implementation
+# key: implement
+# --
+implement
+${1:identifier}(${2:arguments}) =
+${3:body}"

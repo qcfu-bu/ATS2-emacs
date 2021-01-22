@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: vtypedef
+# key: vtypedef
+# --
+vtypedef ${1:identifier} = ${2:type}

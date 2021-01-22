@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: function definition
+# key: fun
+# --
+fun
+${1:identifier}(${2:arguments}): ${3:type} =
+${4:body}

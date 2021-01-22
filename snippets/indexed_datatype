@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: indexed datatype
+# key: datatype
+# --
+datatype ${1:identifier}(${2:index}) =
+| ${3:constructor} of (${4:type})

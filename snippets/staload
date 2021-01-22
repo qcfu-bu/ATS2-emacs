@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: staload file
+# key: staload
+# --
+#staload ${1:identifier} = "${2:filename}"

@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: dynload
+# key: dynload
+# --
+#dynload "${1:filename}"

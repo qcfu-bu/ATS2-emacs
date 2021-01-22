@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: fprint!
+# key: fprint!
+# --
+fprint!(${1:fileref}, ${2:expression})

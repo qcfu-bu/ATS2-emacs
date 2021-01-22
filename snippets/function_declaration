@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: function declaration
+# key: fun
+# --
+fun
+${1:identifier}(${2:arguments}): ${3:type}
