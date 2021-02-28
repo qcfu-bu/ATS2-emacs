@@ -105,9 +105,9 @@
                            (and (zerop nest-lvl)
                                 (looking-at regexp)))))
       (cond ((looking-at "(\\|\\[\\|{")
-             (incf nest-lvl))
+             (cl-incf nest-lvl))
             ((looking-at ")\\|\\]\\|}")
-             (decf nest-lvl)))
+             (cl-decf nest-lvl)))
       (forward-char 1))
     foundp))
 
@@ -147,13 +147,13 @@
              (store-match-data (list begin end key-begin key-end))))
       ;; attempt to find some statics to highlight and store the
       ;; points beginning and ending the region to highlight.  needs
-      ;; to be a loop in order to handle cases like ( foo : type )
+      ;; to be a cl-loop in order to handle cases like ( foo : type )
       ;; where initially it considers ( .. | .. ) but finds no '|'
       ;; char so it must then go inside and look for sub-regions like
       ;; ": type".
       ;;
       ;; Each branch of the cond must be sure to make progress, the
-      ;; point must advance, or else infinite-loop bugs may arise.
+      ;; point must advance, or else infinite-cl-loop bugs may arise.
       (while (and (not foundp) (< (point) limit))
         (setq key-begin 0 key-end 0)
         (cond
@@ -182,7 +182,7 @@
            ;; a | due to a case.
            ((looking-at "(")
             (forward-char 1)
-            (incf begin)
+            (cl-incf begin)
             (cond
              ((null (ats-context-free-search "|\\|)" limit))
               (setq pt nil))
@@ -209,7 +209,7 @@
               (setq foundp t)))
            ((looking-at "[^[:space:].:-]<")
             (forward-char 2)
-            (incf begin)
+            (cl-incf begin)
             (cond
              ((re-search-forward ">" limit t)
               (setq end (match-end 0))
@@ -337,7 +337,7 @@
   (setq-local comment-continue " *")
   (setq-local comment-end "*)")
   (setq indent-line-function 'tab-to-tab-stop)
-  (setq tab-stop-list (loop for x from 2 upto 120 by 2 collect x))
+  (setq tab-stop-list (cl-loop for x from 2 upto 120 by 2 collect x))
   (setq indent-tabs-mode nil)
   (local-set-key (kbd "RET") 'newline-and-indent-relative)
   (defun ats-type-check-buffer ()
@@ -352,20 +352,20 @@
    ;; Emacs 21
    ((and (< emacs-major-version 22)
          (not xemacsp))
-    (pushnew '("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4)
+    (cl-pushnew '("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4)
              compilation-error-regexp-alist))
    ;; Emacs 22+ has an improved compilation mode
    ((and (>= emacs-major-version 22)
          (not xemacsp))
-    (pushnew '(ats "\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?\\(?: -- [0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\)?" 2 (3 . 5) (4 . 6))
+    (cl-pushnew '(ats "\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?\\(?: -- [0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\)?" 2 (3 . 5) (4 . 6))
              compilation-error-regexp-alist-alist)
-    (pushnew 'ats compilation-error-regexp-alist))
+    (cl-pushnew 'ats compilation-error-regexp-alist))
    ;; XEmacs has something different, to be contrary
    (xemacsp
-    (pushnew '(ats ("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4))
+    (cl-pushnew '(ats ("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4))
              compilation-error-regexp-alist-alist)
     (unless (eql 'all compilation-error-regexp-systems-list)
-      (pushnew 'ats compilation-error-regexp-systems-list))
+      (cl-pushnew 'ats compilation-error-regexp-systems-list))
     (compilation-build-compilation-error-regexp-alist)
     (message "WARNING! XEMACS IS DEAD AND DEPRECATED."))))
 
