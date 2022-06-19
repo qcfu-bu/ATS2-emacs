@@ -449,11 +449,6 @@ Add `ats2' to `flycheck-checkers'."
 
 (add-hook 'ats2-mode-hook
           #'(lambda ()
-              ;; (require 'smart-compile)
-              ;; (setq smart-compile-alist
-              ;;       (append smart-compile-alist
-              ;;               '(("\\.dats$" .
-              ;;                  "patscc %f -o %n -DATS_MEMALLOC_LIBC && ./%n"))))
               (with-eval-after-load 'flycheck
                 (flycheck-ats2-setup))
               (require 'flycheck)
