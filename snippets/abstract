@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: abstract
-# key: abstract
-# --
-abstract ${1:identifier}

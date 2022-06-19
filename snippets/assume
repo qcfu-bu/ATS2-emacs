@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: assume
-# key: assume
-# --
-assume ${1:identifier} = ${2:type}

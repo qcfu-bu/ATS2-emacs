@@ -1,6 +1,0 @@
-# -*- mode: snippet -*-
-# name: simple datatype
-# key: datatype
-# --
-datatype ${1:identifier} =
-| ${2:constructor} of (${3:type})

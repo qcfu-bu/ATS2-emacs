@@ -1,5 +1,0 @@
-# -*- mode: ats2 -*-
-# name: prelude
-# key: include
-# --
-#include "share/atspre_staload.hats"

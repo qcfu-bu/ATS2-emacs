@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: prerrln! 
-# key: prerrln!
-# --
-prerrln!(${1:expression})

@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: fprintln!
-# key: fprintln!
-# --
-fprintln!(${1:fileref}, ${2:expression})

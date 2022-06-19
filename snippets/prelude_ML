@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: prelude_ML
-# key: include
-# --
-#include "share/atspre_staload_libats_ML.hats"

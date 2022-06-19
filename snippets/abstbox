@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: abstbox
-# key: abstbox
-# --
-abstbox ${1:identifier}

@@ -1,7 +1,0 @@
-# -*- mode: snippet -*-
-# name: template declaration
-# key: fun
-# --
-fun
-{${1:index}}
-${2:identifier}(${3:arguments}): ${4:type}
