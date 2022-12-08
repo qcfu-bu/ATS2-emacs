@@ -2,9 +2,10 @@
 
 ;; Copyright (C) 2007  Stefan Monnier
 ;; updated and modified by Matthew Danish <mrd@debian.org> 2008-2013
+;; updated and modified by Varun Gandhi <theindigamer15@gmail.com> 2018
 
 ;; Author: Stefan Monnier <monnier@iro.umontreal.ca>
-;; Keywords: 
+;; Keywords:
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -17,36 +18,33 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; along with this program; see the file COPYING.  If not, write to
 ;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
-
-;;; Commentary:
-
-;; Todo:
-;; - font-lock
-;; - imenu
-;; - outline
-;; - indentation
 
 ;;; Code:
 
 (require 'cl)
 (require 'compile)
+(require 'flymake)
 
 (when (not (boundp 'xemacsp))
   (setq xemacsp (boundp 'xemacs-logo)))
 
-(defvar ats-mode-syntax-table
+;; Nice explanation on syntax table here.
+;; https://www.emacswiki.org/emacs/EmacsSyntaxTable
+;; TODO: Read through it and make sure everything here makes sense.
+(defvar ats2-mode-syntax-table
   (let ((st (make-syntax-table)))
     ;; (*..*) for nested comments.
     (modify-syntax-entry ?\( "() 1n" st)
     (modify-syntax-entry ?\) ")( 4n" st)
     (modify-syntax-entry ?*  ". 23n" st)
-    ;; Not sure how to do // for single-line comments.
-    ;; The current setting means that (/ and /* start a comment as well :-(
-    (modify-syntax-entry ?/  ". 12b" st)
-    (modify-syntax-entry ?\n ">  b" st)
+    ;; C-like end-of-line comments.
+    ;; See https://stackoverflow.com/q/25245469/2682729
+    (modify-syntax-entry ?/  "< 1" st)
+    (modify-syntax-entry ?/  "< 2" st)
+    (modify-syntax-entry ?\n "> " st)
     ;; Strings.
     (modify-syntax-entry ?\" "\"" st)
     ;; Same problem as in Ada: ' starts a char-literal but can appear within
@@ -55,7 +53,7 @@
     ;; the reverse.  We chose the reverse, which fails more gracefully.
     ;; Oh, and ' is also overloaded for '( '{ and '[  :-(
     (modify-syntax-entry ?\' "_ p" st)
-    ;; 
+    ;;
     (modify-syntax-entry ?\{ "(}" st)
     (modify-syntax-entry ?\} "){" st)
     (modify-syntax-entry ?\[ "(]" st)
@@ -70,6 +68,7 @@
     (modify-syntax-entry ?\, ". p" st)
     ;; Just a guess for now.
     (modify-syntax-entry ?\\ "\\" st)
+    ;; TODO: Figure out what these comments are about.
     ;; Handle trailing +/-/* in keywords.
     ;; (modify-syntax-entry ?+ "_" st)
     ;; (modify-syntax-entry ?- "_" st)
@@ -78,44 +77,16 @@
     ;; supported by Emacs.  Worse: there are 2 kinds, one where "!$#?" are
     ;; allowed and one where "<>" are allowed instead.  Hongwei, what's that
     ;; all about?
-    (modify-syntax-entry ?% "." st)
-    (modify-syntax-entry ?& "." st)
-    (modify-syntax-entry ?+ "." st)
-    (modify-syntax-entry ?- "." st)
-    (modify-syntax-entry ?. "." st)
-    ;; (modify-syntax-entry ?/ "." st)  ; Already covered above for comments.
-    (modify-syntax-entry ?: "." st)
-    (modify-syntax-entry ?= "." st)
-    ;; (modify-syntax-entry ?@ "." st)  ; Already defined above.
-    (modify-syntax-entry ?~ "." st)
-    ;; (modify-syntax-entry ?` "." st)  ; Already defined above.
-    (modify-syntax-entry ?^ "." st)
-    (modify-syntax-entry ?| "." st)
-    ;; (modify-syntax-entry ?* "." st)  ; Already covered above for comments.
-    (modify-syntax-entry ?< "." st)
-    (modify-syntax-entry ?> "." st)
-    (modify-syntax-entry ?! "." st)
-    ;; (modify-syntax-entry ?$ "." st)  ; Already defined above.
-    ;; (modify-syntax-entry ?# "." st)  ; Already defined above.
-    (modify-syntax-entry ?? "." st)
-    ;; Real punctuation?
-    (modify-syntax-entry ?:  "." st)
-    (modify-syntax-entry ?\; "." st)
+    (dolist (i '(?% ?& ?+ ?- ?. ?: ?= ?~ ?^ ?| ?< ?> ?! ?? ?\;))
+      (modify-syntax-entry i "." st))
     st))
 
-(defvar ats-mode-font-lock-syntax-table
-  (let ((st (copy-syntax-table ats-mode-syntax-table)))
+(defvar ats2-mode-font-lock-syntax-table
+  (let ((st (copy-syntax-table ats2-mode-syntax-table)))
     (modify-syntax-entry ?_ "w" st)
     st))
-    
-;; Font-lock.
 
-(defface ats-font-lock-static-face
-  '(;; (default :inherit font-lock-type-face)
-    (t (:foreground "SkyBlue" :weight normal)))
-  "Face used for static-related parts of code."
-  :group 'ats-font-lock-faces)
-(defvar ats-font-lock-static-face 'ats-font-lock-static-face)
+;; Font-lock.
 
 (defface ats-font-lock-metric-face
   '(;; (default :inherit font-lock-type-face)
@@ -123,20 +94,6 @@
   "Face used for termination metrics."
   :group 'ats-font-lock-faces)
 (defvar ats-font-lock-metric-face 'ats-font-lock-metric-face)
-
-(defface ats-font-lock-keyword-face
-  '(;; (default :inherit font-lock-keyword-face)
-    (t (:foreground "Cyan" :weight normal)))
-  "Face used for keywords."
-  :group 'ats-font-lock-faces)
-(defvar ats-font-lock-keyword-face 'ats-font-lock-keyword-face)
-
-(defface ats-font-lock-c-face
-  '(;; (default :inherit font-lock-comment-face)
-    (t (:foreground "Pink" :weight normal)))
-  "Face used for C code."
-  :group 'ats-font-lock-faces)
-(defvar ats-font-lock-c-face 'ats-font-lock-c-face)
 
 (defun ats-context-free-search (regexp &optional limit)
   "Use inside a parenthesized expression to find a regexp at the same level."
@@ -148,9 +105,9 @@
                            (and (zerop nest-lvl)
                                 (looking-at regexp)))))
       (cond ((looking-at "(\\|\\[\\|{")
-             (incf nest-lvl))
+             (cl-incf nest-lvl))
             ((looking-at ")\\|\\]\\|}")
-             (decf nest-lvl)))
+             (cl-decf nest-lvl)))
       (forward-char 1))
     foundp))
 
@@ -181,32 +138,33 @@
           (store-match-data (list begin end))
           (point))))))
 
+;; TODO: What does the author mean by "static-search"?
 (defun ats-font-lock-static-search (&optional limit)
   (interactive)
   (when (null limit) (setq limit (point-max)))
   (let (foundp begin end (key-begin 0) (key-end 0) pt)
-    (flet ((store ()
+    (cl-flet ((store ()
              (store-match-data (list begin end key-begin key-end))))
       ;; attempt to find some statics to highlight and store the
       ;; points beginning and ending the region to highlight.  needs
-      ;; to be a loop in order to handle cases like ( foo : type )
+      ;; to be a cl-loop in order to handle cases like ( foo : type )
       ;; where initially it considers ( .. | .. ) but finds no '|'
       ;; char so it must then go inside and look for sub-regions like
-      ;; ": type". 
+      ;; ": type".
       ;;
       ;; Each branch of the cond must be sure to make progress, the
-      ;; point must advance, or else infinite-loop bugs may arise.
+      ;; point must advance, or else infinite-cl-loop bugs may arise.
       (while (and (not foundp) (< (point) limit))
         (setq key-begin 0 key-end 0)
-        (cond 
+        (cond
          ((re-search-forward "(\\|:[^=]\\|{\\|[^[:space:].:-]<" limit t)
           (setq pt (setq begin (match-beginning 0)))
           (when pt (goto-char pt))
-          (cond 
+          (cond
            ;; handle { ... }
            ((looking-at "{")
             (forward-char 1)
-            (cond 
+            (cond
              ((save-excursion
                 (forward-word -1)
                 (looking-at "where"))
@@ -220,9 +178,11 @@
              (t
               (setq pt nil))))
            ;; handle ( ... | ... )
+           ;; FIXME: insert logic here to ignore this when we detect
+           ;; a | due to a case.
            ((looking-at "(")
             (forward-char 1)
-            (incf begin)
+            (cl-incf begin)
             (cond
              ((null (ats-context-free-search "|\\|)" limit))
               (setq pt nil))
@@ -249,8 +209,8 @@
               (setq foundp t)))
            ((looking-at "[^[:space:].:-]<")
             (forward-char 2)
-            (incf begin)
-            (cond 
+            (cl-incf begin)
+            (cond
              ((re-search-forward ">" limit t)
               (setq end (match-end 0))
               (store)
@@ -268,8 +228,8 @@
     pt))
 
 (defvar ats-word-keywords
-  '("abstype" "abst0ype" "absprop" "absview" "absvtype" "absviewtype" "absvt0ype" "absviewt0ype"
-    "and" "as" "assume" "begin" "break" "continue" "classdec" "datasort"
+  '("abstype" "abstbox" "abst0ype" "absprop" "absview" "absvtype" "absviewtype" "absvt0ype" "absviewt0ype"
+    "and" "as" "assume" "absimpl" "begin" "break" "continue" "classdec" "datasort"
     "datatype" "dataprop" "dataview" "datavtype" "dataviewtype" "do" "dynload" "else"
     "end" "exception" "extern" "extype" "extval" "fn" "fnx" "fun"
     "prfn" "prfun" "praxi" "castfn" "if" "in" "infix" "infixl"
@@ -279,7 +239,7 @@
     "stadef" "stavar" "staload" "symelim" "symintr" "then" "try" "tkindef"
     "type" "typedef" "propdef" "viewdef" "vtypedef" "viewtypedef" "val" "prval"
     "var" "prvar" "when" "where" "for" "while" "with" "withtype"
-    "withprop" "withview" "withvtype" "withviewtype")) 
+    "withprop" "withview" "withvtype" "withviewtype"))
 
 (defun wrap-word-keyword (w)
   (concat "\\<" w "\\>"))
@@ -291,30 +251,45 @@
     "$record" "$record_t" "$record_vt" "$tup" "$tup_t" "$tup_vt" "$tuple" "$tuple_t"
     "$tuple_vt" "$raise" "$showtype" "$myfilename" "$mylocation" "$myfunction" "#assert" "#define"
     "#elif" "#elifdef" "#elifndef" "#else" "#endif" "#error" "#if" "#ifdef"
-    "#ifndef" "#include" "#print" "#then" "#undef"))
+    "#ifndef" "#include" "#print" "#then" "#undef" "#dynload" "#staload"))
 
 (defun wrap-special-keyword (w)
   (concat "\\" w "\\>"))
 
 (defvar ats-keywords
-  (append (list "\\<\\(s\\)?case\\(+\\|*\\)?\\>")
+  (append (list "\\<\\(s\\)?case[\+\*]?\\>")
           (mapcar 'wrap-word-keyword ats-word-keywords)
           (mapcar 'wrap-special-keyword ats-special-keywords)))
 
+;; FIXME: This shouldn't be a global variable?
+(defvar ats-whitespace-or-newline "[[:space:]\n]+")
+
+;; Stolen from rust-mode.el
+(defun ats-re-word (inner) (concat "\\<" inner "\\>"))
+(defun ats-re-grab (inner) (concat "\\(" inner "\\)"))
+(defconst ats-re-ident "[[:word:][:multibyte:]_][[:word:][:multibyte:]_[:digit:]]*")
+(defun ats-re-item-def (itype)
+  (concat (ats-re-word itype) ats-whitespace-or-newline (ats-re-grab ats-re-ident)))
+
 (defvar ats-font-lock-keywords
+  ;; FIXME: using preprocessor face for C code for now.
   (append
-   '((ats-font-lock-c-code-search (0 'ats-font-lock-c-face t))
-     ;; ("%{[[:print:][:cntrl:]]*%}" (0 'ats-font-lock-c-face))
-                                
-     ;;     ("[^%]\\({[^|}]*|?[^}]*}\\)" (1 'ats-font-lock-static-face))
-     ;;     ("[^']\\(\\[[^]|]*|?[^]]*\\]\\)" (1 'ats-font-lock-static-face))
-     ("\\.<[^>]*>\\." (0 'ats-font-lock-metric-face))
-     (ats-font-lock-static-search
-      (0 'ats-font-lock-static-face)
-      (1 'ats-font-lock-keyword-face)))
-   
+   '((ats-font-lock-c-code-search (0 font-lock-preprocessor-face t))
+     ("\\.<[^>]*>\\." (0 'ats-font-lock-metric-face)) ;; TODO: what does this face do?
+     (ats-font-lock-static-search ;; this function isn't working correctly.
+      (0 'font-lock-constant-face)
+      (1 'font-lock-keyword-face)))
+
    (list (list (mapconcat 'identity ats-keywords "\\|")
-               '(0 'ats-font-lock-keyword-face)))))
+               '(0 'font-lock-keyword-face)))
+   (mapcar #'(lambda (x)
+               (list (ats-re-item-def (car x))
+                     1 (cdr x)))
+           '(("datatype" . font-lock-type-face)
+             ("implement" . font-lock-function-name-face)
+             ("fun" . font-lock-function-name-face)
+             ("val" . font-lock-function-name-face)
+             ("and" . font-lock-function-name-face)))))
 
 (defvar ats-font-lock-syntactic-keywords
   '(("(\\(/\\)" (1 ". 1b"))             ; (/ does not start a comment.
@@ -325,16 +300,17 @@
      (1 "\"'") (2 "\"'"))
     ))
 
-(define-derived-mode c/ats-mode c-mode "C/ATS"
+(define-derived-mode c/ats2-mode c-mode "C/ATS"
   "Major mode to edit C code embedded in ATS code."
-  (unless (local-variable-p 'compile-command)
-    (set (make-local-variable 'compile-command)
-         (let ((file buffer-file-name))
-           (format "patsopt -tc -d %s" file)))
-    (put 'compile-command 'permanent-local t))
-  (setq indent-line-function 'c/ats-mode-indent-line))
+  (defun ats-type-check-buffer ()
+    (interactive)
+    (save-buffer)
+    (let ((ats-type-check-script (format "patscc -tcats %s" buffer-file-name)))
+      (compile ats-type-check-script)))
+  (local-set-key (kbd "C-c C-c") 'ats-type-check-buffer)
+  (setq indent-line-function 'c/ats2-mode-indent-line))
 
-(defun c/ats-mode-indent-line (&optional arg)
+(defun c/ats2-mode-indent-line (&optional arg)
   (let (c-start c-end)
     (save-excursion
       (if (re-search-backward "%{[^$]?" 0 t)
@@ -349,48 +325,49 @@
       ;; the cc-mode indentation engine.
       (narrow-to-region c-start c-end)
       (c-indent-line arg))))
-   
+
 ;;;###autoload
-(define-derived-mode ats-mode fundamental-mode "ATS2"
+(define-derived-mode ats2-mode prog-mode "ATS2"
   "Major mode to edit ATS2 source code."
-  (set (make-local-variable 'font-lock-defaults)
-       '(ats-font-lock-keywords nil nil ((?_ . "w") (?= . "_")) nil
-         (font-lock-syntactic-keywords . ats-font-lock-syntactic-keywords)
-         (font-lock-mark-block-function . ats-font-lock-mark-block)))
-  (set (make-local-variable 'comment-start) "(*")
-  (set (make-local-variable 'comment-continue)  " *")
-  (set (make-local-variable 'comment-end) "*)")
+  (setq-local font-lock-defaults
+              '(ats-font-lock-keywords nil nil ((?_ . "w") (?= . "_")) nil
+                                       (font-lock-syntactic-keywords . ats-font-lock-syntactic-keywords)
+                                       (font-lock-mark-block-function . ats-font-lock-mark-block)))
+  (setq-local comment-start "(*")
+  (setq-local comment-continue " *")
+  (setq-local comment-end "*)")
   (setq indent-line-function 'tab-to-tab-stop)
-  (setq tab-stop-list (loop for x from 2 upto 120 by 2 collect x))
+  (setq tab-stop-list (cl-loop for x from 2 upto 120 by 2 collect x))
   (setq indent-tabs-mode nil)
   (local-set-key (kbd "RET") 'newline-and-indent-relative)
-  (unless (local-variable-p 'compile-command)
-    (set (make-local-variable 'compile-command)
-         (let ((file buffer-file-name))
-           (format "patsopt -tc -d %s" file)))
-    (put 'compile-command 'permanent-local t))
-  (local-set-key (kbd "C-c C-c") 'compile)
-  (cond 
+  (defun ats-type-check-buffer ()
+    (interactive)
+    (save-buffer)
+    (let ((ats-type-check-script (format "patscc -tcats %s" buffer-file-name)))
+      (compile ats-type-check-script)))
+  (local-set-key (kbd "C-c C-c") 'ats-type-check-buffer)
+  ;; FIXME: This seems like a bad idea. We should replace it with a proper
+  ;; variable so that it can be modified externally.
+  (cond
    ;; Emacs 21
    ((and (< emacs-major-version 22)
-         (not xemacsp)) 
-    (pushnew '("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4)
+         (not xemacsp))
+    (cl-pushnew '("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4)
              compilation-error-regexp-alist))
    ;; Emacs 22+ has an improved compilation mode
    ((and (>= emacs-major-version 22)
          (not xemacsp))
-    (pushnew '(ats "\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?\\(?: -- [0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\)?" 2 (3 . 5) (4 . 6))
+    (cl-pushnew '(ats "\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?\\(?: -- [0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\)?" 2 (3 . 5) (4 . 6))
              compilation-error-regexp-alist-alist)
-    (pushnew 'ats compilation-error-regexp-alist))
+    (cl-pushnew 'ats compilation-error-regexp-alist))
    ;; XEmacs has something different, to be contrary
    (xemacsp
-    (pushnew '(ats ("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4))
+    (cl-pushnew '(ats ("\\(syntax error: \\)?\\([^\n:]*\\): \\[?[0-9]*(line=\\([0-9]*\\), offs=\\([0-9]*\\))\\]?" 2 3 4))
              compilation-error-regexp-alist-alist)
     (unless (eql 'all compilation-error-regexp-systems-list)
-      (pushnew 'ats compilation-error-regexp-systems-list))
+      (cl-pushnew 'ats compilation-error-regexp-systems-list))
     (compilation-build-compilation-error-regexp-alist)
     (message "WARNING! XEMACS IS DEAD AND DEPRECATED."))))
-
 
 (defun newline-and-indent-relative ()
   (interactive)
@@ -400,7 +377,52 @@
                       (back-to-indentation)
                       (current-column))))
 
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.\\(d\\|s\\)ats\\'" . ats-mode))
+(defvar ats2-flymake-command
+  "patscc"
+  "Command used to check an ATS2 file for errors")
 
-(provide 'ats-mode)
+(defvar ats2-flymake-command-options
+  "-tcats"
+  "Options passed to the command used to check a file for errors")
+
+(defun ats2-flymake-init ()
+  (let* ((temp-file   (flymake-init-create-temp-buffer-copy
+                       'flymake-create-temp-inplace))
+	 (local-file  (file-relative-name
+                       temp-file
+                       (file-name-directory buffer-file-name))))
+    (list ats2-flymake-command
+          (list ats2-flymake-command-options local-file))))
+
+;; List of file extensions that trigger ats2-flymake.
+(push '(".+\\.sats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.dats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.hats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+
+;; Regular expressions for detecting and reporting errors.
+(push '("^\\(syntax error\\): *\\([^ ]+\\):.*line=\\([0-9]+\\).*$" 2 3 nil 1)
+      flymake-err-line-patterns)
+(push '("^\\(.+.dats\\|.sats\\|.hats\\):.*line=\\([0-9]+\\).*\\(error.+\\)$" 1 2 nil 3)
+      flymake-err-line-patterns)
+
+(defun ats2-flymake-load ()
+  (flymake-mode t)
+
+  ;; Utility key bindings for navigating errors reported by flymake.
+  (local-set-key (kbd "C-c C-d") 'flymake-display-err-menu-for-current-line)
+  (local-set-key (kbd "C-c C-n") 'flymake-goto-next-error)
+  (local-set-key (kbd "C-c C-p") 'flymake-goto-prev-error)
+
+  ;; Prevents flymake from throwing a configuration error
+  ;; This must be done because atsopt returns a non-zero return value
+  ;; when it finds an error, flymake expects a zero return value.
+  (defadvice flymake-post-syntax-check (before flymake-force-check-was-interrupted)
+    (setq flymake-check-was-interrupted t))
+  (ad-activate 'flymake-post-syntax-check))
+
+(add-hook 'ats2-mode-hook 'ats2-flymake-load)
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
+
+(provide 'ats2-mode)
