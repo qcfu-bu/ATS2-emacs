@@ -24,7 +24,7 @@
 
 ;;; Code:
 
-(require 'cl-lib)
+(require 'cl)
 (require 'compile)
 (require 'flymake)
 
