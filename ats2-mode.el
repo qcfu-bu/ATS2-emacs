@@ -430,6 +430,7 @@
   (interactive)
   (add-to-list 'flycheck-checkers 'ats2))
 
+;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
 
 (provide 'ats2-mode)
