@@ -26,7 +26,6 @@
 
 (require 'cl)
 (require 'compile)
-(require 'flycheck)
 
 (when (not (boundp 'xemacsp))
   (setq xemacsp (boundp 'xemacs-logo)))
@@ -378,9 +377,62 @@
                       (current-column))))
 
 ;;------------------------------------------------------------------------------
+;; Flymake support for ATS2
+;;------------------------------------------------------------------------------
+(require 'flymake)
+(defvar ats2-flymake-command
+  "patscc"
+  "Command used to check an ATS2 file for errors")
+
+(defvar ats2-flymake-command-options
+  "-tcats"
+  "Options passed to the command used to check a file for errors")
+
+(defun ats2-flymake-init ()
+  (let* ((temp-file   (flymake-init-create-temp-buffer-copy
+                       'flymake-create-temp-inplace))
+	 (local-file  (file-relative-name
+                       temp-file
+                       (file-name-directory buffer-file-name))))
+    (list ats2-flymake-command
+          (list ats2-flymake-command-options local-file))))
+
+;; List of file extensions that trigger ats2-flymake.
+(push '(".+\\.sats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.dats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.hats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+
+;; Regular expressions for detecting and reporting errors.
+(push '("^\\(syntax error\\): *\\([^ ]+\\):.*line=\\([0-9]+\\).*$" 2 3 nil 1)
+      flymake-err-line-patterns)
+(push '("^\\(.+.dats\\|.sats\\|.hats\\):.*line=\\([0-9]+\\).*\\(error.+\\)$" 1 2 nil 3)
+      flymake-err-line-patterns)
+
+(defun ats2-flymake-load ()
+  (flymake-mode t)
+
+  ;; Utility key bindings for navigating errors reported by flymake.
+  (local-set-key (kbd "C-c C-d") 'flymake-display-err-menu-for-current-line)
+  (local-set-key (kbd "C-c C-n") 'flymake-goto-next-error)
+  (local-set-key (kbd "C-c C-p") 'flymake-goto-prev-error)
+
+  ;; Prevents flymake from throwing a configuration error
+  ;; This must be done because atsopt returns a non-zero return value
+  ;; when it finds an error, flymake expects a zero return value.
+  (defadvice flymake-post-syntax-check (before flymake-force-check-was-interrupted)
+    (setq flymake-check-was-interrupted t))
+  (ad-activate 'flymake-post-syntax-check))
+
+;;;###autoload
+(defun ats2-flymake-setup ()
+  "Set up Flymake for ATS2."
+  (interactive)
+  (add-hook 'ats2-mode-hook 'ats2-flymake-load))
+
+
+;;------------------------------------------------------------------------------
 ;; Flycheck support for ATS2
 ;;------------------------------------------------------------------------------
-
 (defun flycheck-ats2-rx-level (level)
   "Return a flycheck-rx form for an ATS-Postiats error message with LEVEL."
   ;; This will catch all single-line messages:
@@ -416,13 +468,15 @@
      (or (: ?: ?\n (repeat 2 (: (1+ not-newline) ?\n)))
          ?\n))))
 
-(flycheck-define-command-checker 'ats2
-  "ATS2 checker using patscc."
-  :command '("patscc" "-tcats" source-inplace)
-  :error-patterns
-  `((error   ,@(flycheck-ats2-rx-level "error"))
-    (warning ,@(flycheck-ats2-rx-level "warning")))
-  :modes 'ats2-mode)
+(require 'flycheck nil t)
+(when (featurep 'flycheck)
+  (flycheck-define-command-checker 'ats2
+    "ATS2 checker using patscc."
+    :command '("patscc" "-tcats" source-inplace)
+    :error-patterns
+    `((error   ,@(flycheck-ats2-rx-level "error"))
+      (warning ,@(flycheck-ats2-rx-level "warning")))
+    :modes 'ats2-mode))
 
 ;;;###autoload
 (defun ats2-flycheck-setup ()
