@@ -423,66 +423,7 @@
     (setq flymake-check-was-interrupted t))
   (ad-activate 'flymake-post-syntax-check))
 
-;;;###autoload
-(defun ats2-flymake-setup ()
-  "Set up Flymake for ATS2."
-  (interactive)
-  (add-hook 'ats2-mode-hook 'ats2-flymake-load))
-
-
-;;------------------------------------------------------------------------------
-;; Flycheck support for ATS2
-;;------------------------------------------------------------------------------
-(defun flycheck-ats2-rx-level (level)
-  "Return a flycheck-rx form for an ATS-Postiats error message with LEVEL."
-  ;; This will catch all single-line messages:
-  ;;
-  ;; filename: 3120(line=151, offs=1) -- 3124(line=151, offs=5): error(3): the applied dynamic expression is of non-function type: S2Ecst(bool_t0ype)
-  ;; filename: 3120(line=151, offs=1) -- 3124(line=151, offs=5): error(3): the dynamic expression cannot be assigned the type [S2Ecst(bool_t0ype)].
-  ;;
-  ;; ...and multi-line messages of the same form that end with a colon, in
-  ;; which case we assume there will be two following lines that should be
-  ;; grouped with the first line, e.g.:
-  ;;
-  ;; filename: 3120(line=151, offs=1) -- 3124(line=151, offs=5): error(3): mismatch of static terms (tyleq):
-  ;; The actual term is: S2Eerr()
-  ;; The needed term is: S2Ecst(bool_t0ype)
-  ;;
-  ;; See: https://github.com/githwxi/ATS-Postiats/blob/1c0a515f8fb0f757359f7bf096e8a5541683a6ff/src/pats_errmsg.dats
-
-  ;; file name
-  `(bol
-    (file-name)
-    ;; offset of error start
-    ":" space (1+ num)
-    ;; line, column; start of error span
-    "(line=" line "," space "offs=" column ")"
-    ;; offset of error end
-    space "--" space (1+ num)
-    ;; line, column; end of error span
-    "(line=" (1+ num) "," space "offs=" (1+ num) "):"
-    space ,level "(" (id (one-or-more alnum)) "):"
-    ;; error message; up to three lines long
-    (message
-     (+? not-newline)
-     (or (: ?: ?\n (repeat 2 (: (1+ not-newline) ?\n)))
-         ?\n))))
-
-(require 'flycheck nil t)
-(when (featurep 'flycheck)
-  (flycheck-define-command-checker 'ats2
-    "ATS2 checker using patscc."
-    :command '("patscc" "-tcats" source-inplace)
-    :error-patterns
-    `((error   ,@(flycheck-ats2-rx-level "error"))
-      (warning ,@(flycheck-ats2-rx-level "warning")))
-    :modes 'ats2-mode))
-
-;;;###autoload
-(defun ats2-flycheck-setup ()
-  "Set up Flycheck for ATS2."
-  (interactive)
-  (add-to-list 'flycheck-checkers 'ats2))
+(add-hook 'ats2-mode-hook 'ats2-flymake-load)
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
