@@ -408,7 +408,8 @@
 (push '("^\\(.+.dats\\|.sats\\|.hats\\):.*line=\\([0-9]+\\).*\\(error.+\\)$" 1 2 nil 3)
       flymake-err-line-patterns)
 
-(defun ats2-flymake-load ()
+;;;###autoload
+(defun ats2-flymake-setup ()
   (flymake-mode t)
 
   ;; Utility key bindings for navigating errors reported by flymake.
@@ -476,9 +477,9 @@
   "Set up Flycheck for ATS2."
   (interactive)
   (add-to-list 'flycheck-checkers 'ats2))
-;;;###autoload
-(add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
 
 ;;------------------------------------------------------------------------------
 
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.[dsh]ats\\'" . ats2-mode))
 (provide 'ats2-mode)
