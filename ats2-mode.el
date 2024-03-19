@@ -380,6 +380,7 @@
 ;; Flymake support for ATS2
 ;;------------------------------------------------------------------------------
 (require 'flymake)
+(require 'flymake-proc)
 (defvar ats2-flymake-command
   "patscc"
   "Command used to check an ATS2 file for errors")
@@ -398,31 +399,31 @@
           (list ats2-flymake-command-options local-file))))
 
 ;; List of file extensions that trigger ats2-flymake.
-;; (push '(".+\\.sats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
-;; (push '(".+\\.dats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
-;; (push '(".+\\.hats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.sats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.dats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
+(push '(".+\\.hats$" ats2-flymake-init flymake-simple-cleanup) flymake-allowed-file-name-masks)
 
 ;; Regular expressions for detecting and reporting errors.
-;; (push '("^\\(syntax error\\): *\\([^ ]+\\):.*line=\\([0-9]+\\).*$" 2 3 nil 1)
-;;       flymake-err-line-patterns)
-;; (push '("^\\(.+.dats\\|.sats\\|.hats\\):.*line=\\([0-9]+\\).*\\(error.+\\)$" 1 2 nil 3)
-;;       flymake-err-line-patterns)
+(push '("^\\(syntax error\\): *\\([^ ]+\\):.*line=\\([0-9]+\\).*$" 2 3 nil 1)
+      flymake-err-line-patterns)
+(push '("^\\(.+.dats\\|.sats\\|.hats\\):.*line=\\([0-9]+\\).*\\(error.+\\)$" 1 2 nil 3)
+      flymake-err-line-patterns)
 
 ;; ;;;###autoload
-;; (defun ats2-flymake-setup ()
-;;   (flymake-mode t)
+(defun ats2-flymake-setup ()
+  (flymake-mode t)
 
-;;   ;; Utility key bindings for navigating errors reported by flymake.
-;;   (local-set-key (kbd "C-c C-d") 'flymake-display-err-menu-for-current-line)
-;;   (local-set-key (kbd "C-c C-n") 'flymake-goto-next-error)
-;;   (local-set-key (kbd "C-c C-p") 'flymake-goto-prev-error)
+  ;; Utility key bindings for navigating errors reported by flymake.
+  (local-set-key (kbd "C-c C-d") 'flymake-display-err-menu-for-current-line)
+  (local-set-key (kbd "C-c C-n") 'flymake-goto-next-error)
+  (local-set-key (kbd "C-c C-p") 'flymake-goto-prev-error)
 
-;;   ;; Prevents flymake from throwing a configuration error
-;;   ;; This must be done because atsopt returns a non-zero return value
-;;   ;; when it finds an error, flymake expects a zero return value.
-;;   (defadvice flymake-post-syntax-check (before flymake-force-check-was-interrupted)
-;;     (setq flymake-check-was-interrupted t))
-;;   (ad-activate 'flymake-post-syntax-check))
+  ;; Prevents flymake from throwing a configuration error
+  ;; This must be done because atsopt returns a non-zero return value
+  ;; when it finds an error, flymake expects a zero return value.
+  (defadvice flymake-post-syntax-check (before flymake-force-check-was-interrupted)
+    (setq flymake-check-was-interrupted t))
+  (ad-activate 'flymake-post-syntax-check))
 
 ;;------------------------------------------------------------------------------
 ;; Flycheck support for ATS2
